@@ -1,3 +1,4 @@
+"""Script to fit gas viscosity and density models to reference data and save the best models as .txt files to disk."""
 import pandas as pd
 import numpy as np
 import plotly.express as px
