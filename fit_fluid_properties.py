@@ -1,3 +1,4 @@
+"""Fit fluid property models for a real gas. Temperature and pressure are the input features."""
 import numpy as np
 import pandas as pd
 
@@ -7,17 +8,23 @@ from scraper.fluid_constants import SpecificGasConstants, SutherlandsConstants
 
 
 def fit_gas_density(config: dict) -> tuple[pd.DataFrame, str]:
-    """Fit a model to the compressibility factor data and calculate the density of the gas.
+    """
+    Fit a model to the compressibility factor data and calculate the density of the gas.
 
-    Args:
-        config (dict): Configuration dictionary. Must contain the following keys:
+    Parameters
+    ----------
+    config: dict
+        Configuration dictionary. Must contain the following keys:
             - "reference_data_path": Path to the reference data.
             - "reference_fluid": Name of the sheet in the reference data.
             - "model_poly_degree": Degree of the polynomial regression model.
 
-    Returns:
-        tuple[pd.DataFrame, str]: A tuple containing the DataFrame with the results and the functional form of the compressibility factor model.
+    Returns
+    -------
+    tuple[pd.DataFrame, str]
+        A tuple containing the DataFrame with the results and the functional form of the compressibility factor model.
     """
+
     config["reference_data_path"] = config["reference_data_directory"] + "/" + config["reference_data_filename"]
     loader = Loader(config["reference_data_path"])
     X, y = loader("Compressibility")
@@ -66,17 +73,23 @@ def fit_gas_density(config: dict) -> tuple[pd.DataFrame, str]:
 
 
 def fit_gas_viscosity(config: dict) -> tuple[pd.DataFrame, str]:
-    """Fit a model to the gas viscosity data and calculate the viscosity of the gas.
+    """
+    Fit a model to the gas viscosity data and calculate the viscosity of the gas.
 
-    Args:
-        config (dict): Configuration dictionary. Must contain the following keys:
+    Parameters
+    ----------
+    config: dict
+        Configuration dictionary. Must contain the following keys:
             - "reference_data_path": Path to the reference data.
             - "reference_fluid": Name of the sheet in the reference data.
             - "model_poly_degree": Degree of the polynomial regression model.
 
-    Returns:
-        tuple[pd.DataFrame, str]: A tuple containing the DataFrame with the results and the functional form of the viscosity model.
+    Returns
+    -------
+    tuple[pd.DataFrame, str]
+        A tuple containing the DataFrame with the results and the functional form of the viscosity model.
     """
+
     config["reference_data_path"] = (
         config["reference_data_directory"] + "/" + config["reference_data_filename"]
     )
@@ -116,6 +129,60 @@ def fit_gas_viscosity(config: dict) -> tuple[pd.DataFrame, str]:
             "Viscosity_hat (Pa*s)": mu_hat,
             "Viscosity Error (Pa*s)": mu_error,
             "Viscosity Relative Error (%)": 100 * mu_error / dynamic_viscosity,
+        }
+    )
+
+    return df, functional_form_text
+
+
+def fit_isentropic_exponent(config: dict) -> tuple[pd.DataFrame, str]:
+    """
+    Fit a model to the isentropic exponent data and calculate the isentropic exponent of the gas.
+
+    Parameters
+    ----------
+    config: dict
+        Configuration dictionary. Must contain the following keys:
+            - "reference_data_path": Path to the reference data.
+            - "reference_fluid": Name of the sheet in the reference data.
+            - "model_poly_degree": Degree of the polynomial regression model.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, str]
+    """
+    config["reference_data_path"] = (
+        config["reference_data_directory"] + "/" + config["reference_data_filename"]
+    )
+    loader = Loader(config["reference_data_path"])
+    X, specific_heat_cp = loader.load_data("Cp (J/g*K)")
+    specific_heat_cv = loader.load_data("Cv (J/g*K)")[1]
+
+    y = specific_heat_cp / specific_heat_cv
+
+    temperature = X[:, 0]  # C
+    pressure = X[:, 1]  # bar
+    isentropic_exponent = y
+
+    # ISOTROPIC EXPONENT MODEL
+    model = PolynomialRegression(degree=config["model_poly_degree"])
+    model.fit(X, y)
+    isentropic_exponent_functional_form = model.save()
+    isentropic_exponent_hat = model.predict(X)
+
+    # SAVE DATA
+    functional_form_text = isentropic_exponent_functional_form
+
+    df = pd.DataFrame(
+        {
+            "Temperature (C)": temperature,
+            "Pressure (bar)": pressure,
+            "Isentropic Exponent": isentropic_exponent,
+            "Isentropic Exponent_hat": isentropic_exponent_hat,
+            "Isentropic Exponent Error": isentropic_exponent_hat - isentropic_exponent,
+            "Isentropic Exponent Relative Error (%)": 100
+            * (isentropic_exponent_hat - isentropic_exponent)
+            / isentropic_exponent,
         }
     )
 
