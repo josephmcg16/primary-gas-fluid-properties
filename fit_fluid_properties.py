@@ -1,4 +1,6 @@
 """Fit fluid property models for a real gas. Temperature and pressure are the input features."""
+
+from matplotlib.pylab import f
 import numpy as np
 import pandas as pd
 
@@ -25,7 +27,9 @@ def fit_gas_density(config: dict) -> tuple[pd.DataFrame, str]:
         A tuple containing the DataFrame with the results and the functional form of the compressibility factor model.
     """
 
-    config["reference_data_path"] = config["reference_data_directory"] + "/" + config["reference_data_filename"]
+    config["reference_data_path"] = (
+        config["reference_data_directory"] + "/" + config["reference_data_filename"]
+    )
     loader = Loader(config["reference_data_path"])
     X, y = loader("Compressibility")
 
@@ -180,6 +184,73 @@ def fit_isentropic_exponent(config: dict) -> tuple[pd.DataFrame, str]:
             "Isentropic Exponent Relative Error (%)": 100
             * (isentropic_exponent_hat - isentropic_exponent)
             / isentropic_exponent,
+        }
+    )
+
+    return df, functional_form_text
+
+
+def fit_critical_flow_factor(config: dict) -> tuple[pd.DataFrame, str]:
+    """
+    Fit a model to the critical flow factor data and calculate the critical flow factor of the gas.
+
+    Parameters
+    ----------
+    config: dict
+        Configuration dictionary. Must contain the following keys:
+            - "reference_data_path": Path to the reference data.
+            - "reference_fluid": Name of the sheet in the reference data.
+            - "model_poly_degree": Degree of the polynomial regression model.
+
+    Returns
+    -------
+    tuple[pd.DataFrame, str]
+    """
+    config["reference_data_path"] = (
+        config["reference_data_directory"] + "/" + config["reference_data_filename"]
+    )
+    loader = Loader(config["reference_data_path"])
+    X, y = loader("Critical Flow Factor")
+
+    temperature = X[:, 0]  # C
+    pressure = X[:, 1]  # bar
+    critical_flow_factor = y
+
+    # ISOTROPIC EXPONENT MODEL
+    df_isentropic_exponent, isentropic_exponent_functional_form_test = (
+        fit_isentropic_exponent(config)
+    )
+    isentropic_exponent_hat = df_isentropic_exponent["Isentropic Exponent_hat"].values
+
+    # CRITICAL FLOW FACTOR MODEL
+    C_ideal = np.sqrt(
+        isentropic_exponent_hat
+        * (2 / (isentropic_exponent_hat + 1))
+        ** ((isentropic_exponent_hat + 1) / (isentropic_exponent_hat - 1))
+    )
+
+    Y = critical_flow_factor / C_ideal
+
+    model = PolynomialRegression(degree=config["model_poly_degree"])
+    model.fit(X, Y)
+    critical_flow_factor_functional_form = model.save()
+    critical_flow_factor_hat = model.predict(X) * C_ideal
+
+    # SAVE DATA
+    functional_form_text = f"{isentropic_exponent_functional_form_test} * (2 / ({isentropic_exponent_functional_form_test} + 1))**(({isentropic_exponent_functional_form_test} + 1) / ({isentropic_exponent_functional_form_test} - 1)) * ({critical_flow_factor_functional_form})"
+
+    df = pd.DataFrame(
+        {
+            "Temperature (C)": temperature,
+            "Pressure (bar)": pressure,
+            "Isentropic Exponent_hat": isentropic_exponent_hat,
+            "Critical Flow Factor": critical_flow_factor,
+            "Critical Flow Factor_hat": critical_flow_factor_hat,
+            "Critical Flow Factor Error": critical_flow_factor_hat
+            - critical_flow_factor,
+            "Critical Flow Factor Relative Error (%)": 100
+            * (critical_flow_factor_hat - critical_flow_factor)
+            / critical_flow_factor,
         }
     )
 
