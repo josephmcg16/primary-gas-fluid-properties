@@ -1,6 +1,5 @@
 """Fit fluid property models for a real gas. Temperature and pressure are the input features."""
 
-from matplotlib.pylab import f
 import numpy as np
 import pandas as pd
 
