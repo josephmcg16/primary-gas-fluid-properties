@@ -155,10 +155,7 @@ def fit_isentropic_exponent(config: dict) -> tuple[pd.DataFrame, str]:
         config["reference_data_directory"] + "/" + config["reference_data_filename"]
     )
     loader = Loader(config["reference_data_path"])
-    X, specific_heat_cp = loader.load_data("Cp (J/g*K)")
-    specific_heat_cv = loader.load_data("Cv (J/g*K)")[1]
-
-    y = specific_heat_cp / specific_heat_cv
+    X, y = loader.load_data("Isentropic Exponent")
 
     temperature = X[:, 0]  # C
     pressure = X[:, 1]  # bar
