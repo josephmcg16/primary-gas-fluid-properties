@@ -1,0 +1,20 @@
+COMPOSITIONS_BASIS: vol
+
+BASE_COMPOSITIONS_LOWER_LIMITS:  # COMPOSITIONS_BASIS
+  METHANE: 0.9995
+
+IMPURITIES_UPPER_LIMITS:  # COMPOSITIONS_BASIS
+  OXYGEN: 20.0e-06 
+  NITROGEN: 100.0e-06
+  WATER: 20.0e-06  # assuming THC is ethane
+  CO2: 50.0e-06
+  ETHYLENE: 10.0e-06
+  ETHANE: 300.0e-06
+
+FLUID_PROPERTY: D  # Density
+
+DOE:
+  n_grid_temperature: 10
+  n_grid_pressure: 10
+  temperature_range: [310.15, 323.15]  # K
+  pressure_range: [51325, 2101325]  # Pa

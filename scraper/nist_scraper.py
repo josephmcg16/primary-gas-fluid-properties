@@ -150,14 +150,15 @@ class Scraper:
 if __name__ == "__main__":
     from fluid_constants import NistWebbookFluidIDs
 
-    FLUID_ID = NistWebbookFluidIDs.METHANE
-    TEMPERATURE_RANGE = np.linspace(10, 30, 50)  # degC
-    PRESSURE_RANGE = np.linspace(0.95, 120, 50)  # bar(a)
+    FLUID_ID = NistWebbookFluidIDs.HYDROGEN
+    TEMPERATURE_RANGE = np.linspace(-10, 50, 100)  # degC
+    PRESSURE_RANGE = np.linspace(0.002, 2, 100)  # bar(a)
+    PRESSURE_RANGE = np.linspace(2, 130, 300)  # bar(a)
 
     scraper = Scraper(fluid_id=FLUID_ID)
     fluidprop_data = scraper.scrape(
         TEMPERATURE_RANGE, PRESSURE_RANGE, show_progress=True
     )
     fluidprop_data.to_excel(
-        "../data/CH4 Nist Properties 0.95-120 bar.xlsx", index=False, sheet_name="CH4"
+        "../data/H2 Nist Properties 0.002-130 bar.xlsx", index=False, sheet_name="CH4"
     )

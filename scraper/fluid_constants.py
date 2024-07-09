@@ -29,11 +29,11 @@ class SpecificGasConstants:
     }
 
     fluid_name_dict = {
-        "H20": WATER,
-        "H2": HYDROGEN,
-        "N2": NITROGEN,
+        "WATER": WATER,
+        "HYDROGEN": HYDROGEN,
+        "NITROGEN": NITROGEN,
         "CO2": CARBON_DIOXIDE,
-        "CH4": METHANE,
+        "METHANE": METHANE,
     }
 
 
@@ -75,9 +75,9 @@ class SutherlandsConstants:
     }
 
     fluid_name_dict = {
-        "H20": WATER,
-        "H2": HYDROGEN,
-        "N2": NITROGEN,
+        "WATER": WATER,
+        "HYDROGEN": HYDROGEN,
+        "NITROGEN": NITROGEN,
         "CO2": CARBON_DIOXIDE,
-        "CH4": METHANE,
+        "METHANE": METHANE,
     }
