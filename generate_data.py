@@ -3,6 +3,7 @@ from tqdm import tqdm
 from refprop.utils import generate_temperature_pressure_samples
 from refprop.refprop import RefpropInterface
 
+
 def rename_columns(df:pd.DataFrame):
     df["Temperature (C)"] = df["T"] - 273.15  # K to C
     df["Pressure (bar)"] = df["P"] / 1e5  # Pa to bar
@@ -14,7 +15,6 @@ def rename_columns(df:pd.DataFrame):
         "ISENK": "Isentropic Exponent",
         "CSTAR": "Critical Flow Factor"
     }, inplace=True)
-    df
     return df
 
 
