@@ -1,2 +1,6 @@
 __pycache__/
 playground.ipynb
+data/
+REFPRP64.DLL
+refprop/FLUIDS/
+HMX.BNC
