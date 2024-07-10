@@ -236,7 +236,7 @@ def fit_critical_flow_factor(config: dict) -> tuple[pd.DataFrame, str]:
     critical_flow_factor_hat = model.predict(X) * C_ideal
 
     # SAVE DATA
-    functional_form_text = f"{isentropic_exponent_functional_form_test} * (2 / ({isentropic_exponent_functional_form_test} + 1))**(({isentropic_exponent_functional_form_test} + 1) / ({isentropic_exponent_functional_form_test} - 1)) * ({critical_flow_factor_functional_form})"
+    functional_form_text = f"sqrt({isentropic_exponent_functional_form_test} * (2 / ({isentropic_exponent_functional_form_test} + 1))**(({isentropic_exponent_functional_form_test} + 1) / ({isentropic_exponent_functional_form_test} - 1))) * ({critical_flow_factor_functional_form})"
 
     df = pd.DataFrame(
         {
