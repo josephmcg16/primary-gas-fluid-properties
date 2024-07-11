@@ -68,7 +68,7 @@ class RefpropInterface:
         self.fluid = fluid
         self.refprop = ct.WinDLL(self.dll_path)
 
-    def _setup_refprop(self):
+    def setup_refprop(self):
         """
         Setup the REFPROP library and retrieve fluid constants.
 
