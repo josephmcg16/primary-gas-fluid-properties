@@ -243,6 +243,10 @@ if __name__ == "__main__":
         # Calculate deviation
         deviation_col = f"{config['FLUID_PROPERTY']} Deviation [%]"
         df_worst_case[deviation_col] = (df_worst_case.D - df_ref.D) / df_ref.D * 100.0
+
+        # Print results
+        print("Worst-Case Compositions:")
+        print(compositions_worst_case)
         print(df_worst_case.describe())
 
         # Plot results
