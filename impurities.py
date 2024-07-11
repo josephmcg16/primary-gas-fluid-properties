@@ -46,6 +46,30 @@ def get_impact_metrics(df_impurities: pd.DataFrame, fluid_property: str):
     return sorted_series
 
 
+def sort_metrics(impact_metrics):
+    """Sorts the impact metrics in a worst-case order."""
+    sorted_devs = impact_metrics.reindex(impact_metrics.abs().sort_values(ascending=False).index)
+    
+    positive_devs = sorted_devs[sorted_devs >= 0]
+    negative_devs = sorted_devs[sorted_devs < 0]
+    
+    worst_case_order = []
+    worst_case_indices = []
+    
+    while not positive_devs.empty or not negative_devs.empty:
+        if not positive_devs.empty:
+            worst_case_order.append(positive_devs.iloc[0])
+            worst_case_indices.append(positive_devs.index[0])
+            positive_devs = positive_devs.iloc[1:]
+        if not negative_devs.empty:
+            worst_case_order.append(negative_devs.iloc[0])
+            worst_case_indices.append(negative_devs.index[0])
+            negative_devs = negative_devs.iloc[1:]
+    
+    worst_case_series = pd.Series(worst_case_order, index=worst_case_indices)
+    return worst_case_series
+
+
 def normalize_impurities(
         impurities,
         impurities_upper_limits,

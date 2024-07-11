@@ -18,7 +18,7 @@ IMPURITIES_UPPER_LIMITS:  # COMPOSITIONS_BASIS
 FLUID_PROPERTY: D  # Density
 
 DOE:
-  n_grid_temperature: 50
-  n_grid_pressure: 50
+  n_grid_temperature: 10
+  n_grid_pressure: 10
   temperature_range: [310.15, 323.15]  # K
   pressure_range: [51325, 2101325]  # Pa
