@@ -3,7 +3,10 @@ import pandas as pd
 import numpy as np
 import yaml
 
+import plotly.express as px
+
 from refprop.utils import generate_temperature_pressure_samples
+from refprop.refprop import RefpropInterface
 from generate_data import get_fluid_property
 
 
@@ -110,19 +113,21 @@ def normalize_impurities(
 
 if __name__ == "__main__":
     def main():
-        """Main function to run the script."""
-        with open('config\\CO2_IMPURITIES.yaml', 'r', encoding='utf-8') as file:
-            config = yaml.safe_load(file)
+        # Load configuration
+        with open("config\\CO2_IMPURITIES.yaml", 'r') as config_file:
+            config = yaml.safe_load(config_file)
 
-        base_compositions_lower_limits = pd.Series(
+        # Define constants from configuration
+        BASE_COMPOSITIONS_LOWER_LIMITS = pd.Series(
             config['BASE_COMPOSITIONS_LOWER_LIMITS'], 
-            name="Base Compositions [mol/mol]"
+            name="Base Compositions [vol/vol]"
         )
-        impurities_upper_limits = pd.Series(
+        IMPURITIES_UPPER_LIMITS = pd.Series(
             config['IMPURITIES_UPPER_LIMITS'],
-            name="Impurities Upper Limits [mol/mol]"
+            name="Impurities Upper Limits [vol/vol]"
         )
 
+        # Generate temperature and pressure samples
         doe = generate_temperature_pressure_samples(
             config["DOE"]["n_grid_temperature"],
             config["DOE"]["n_grid_pressure"],
@@ -130,30 +135,103 @@ if __name__ == "__main__":
             config["DOE"]["pressure_range"],
         )
 
+        # Get fluid property for reference composition
         df_ref = get_fluid_property(
             doe=doe,
             hFld=";".join(
-                base_compositions_lower_limits.add_prefix("refprop/FLUIDS/").index
-                ),
+                BASE_COMPOSITIONS_LOWER_LIMITS.add_prefix("refprop/FLUIDS/").index
+            ),
             hOut=config['FLUID_PROPERTY'],
-            z=list(base_compositions_lower_limits.values) + \
-                [0.0] * (20 - len(base_compositions_lower_limits)), 
+            z=list(BASE_COMPOSITIONS_LOWER_LIMITS.values) + \
+                [0.0] * (20 - len(BASE_COMPOSITIONS_LOWER_LIMITS)), 
         )
 
+        # Get impurities properties
         df_impurities = get_impurities_properties(
-            fluids=list(impurities_upper_limits.keys()),
+            fluids=list(IMPURITIES_UPPER_LIMITS.keys()),
             doe=doe,
             df_ref=df_ref,
             fluid_property=config['FLUID_PROPERTY'],
         )
 
-        impact_metrics_density = get_impact_metrics(df_impurities, config['FLUID_PROPERTY'])
-        compositions_worst_case = normalize_impurities(
-            impurities=impact_metrics_density,
-            impurities_upper_limits=impurities_upper_limits,
-            base_compositions_lower_limits=base_compositions_lower_limits
-        )
+        # Calculate impact metrics
+        impact_metrics = {
+            config['FLUID_PROPERTY']: get_impact_metrics(
+                df_impurities, config['FLUID_PROPERTY']
+            )
+        }
 
+        # Sort impurities based on impact metrics
+        impurities_sorted = sort_metrics(impact_metrics[config['FLUID_PROPERTY']]).index
+
+        # Calculate normalized impurities
+        total_impurities = 1 - BASE_COMPOSITIONS_LOWER_LIMITS.sum()
+        sum_impurities = 0
+        impurities_sorted_normalized = {}
+        for impurity in impurities_sorted:
+            sum_impurities += IMPURITIES_UPPER_LIMITS[impurity]
+            if sum_impurities < total_impurities:
+                impurities_sorted_normalized[impurity] = IMPURITIES_UPPER_LIMITS[impurity]
+            else:
+                impurities_sorted_normalized[impurity] = IMPURITIES_UPPER_LIMITS[impurity] - (sum_impurities - total_impurities)
+                break
+
+        compositions = pd.concat([BASE_COMPOSITIONS_LOWER_LIMITS, pd.Series(impurities_sorted_normalized)])
+
+        # Function to convert compositions to moles per unit volume
+        def convert_compositions_to_moles_unit_volume(compositions, temperature_filling, pressure_filling):
+            def get_molar_mass(fluid):
+                refprop = RefpropInterface(r"T:\Joseph McGovern\Code\GitHub\refprop-dotnet\refprop", fluid)
+                refprop.setup_refprop()
+                M = refprop.fluid_info['Molar Mass [g/mol]'] / 1000  # kg/mol
+                return M
+
+            def get_property(fluid, fluid_property, temperature, pressure):
+                return get_fluid_property(
+                    pd.DataFrame({"Temperature [K]": [temperature], "Pressure [Pa]": [pressure]}, index=[0]), 
+                    f"refprop/FLUIDS/{fluid}",
+                    fluid_property, 
+                    [1.0] + [0] * 19
+                )[fluid_property].values[0]  # kg/m3
+
+            def get_moles_unit_volume(x_v, M, rho):
+                rho_m = rho / M
+                return x_v * rho_m
+
+            df_filling = pd.DataFrame()
+            for fluid in compositions.index:
+                rho = get_property(
+                    fluid, "D", temperature_filling, pressure_filling
+                )  # kg/m3
+                M = get_molar_mass(fluid)  # kg/mol
+                n = get_moles_unit_volume(compositions[fluid], M, rho)
+                df_filling = pd.concat([
+                    df_filling,
+                    pd.DataFrame({
+                        "Filling Temperature [K]": [temperature_filling],
+                        "Filling Pressure [Pa]": [pressure_filling],
+                        "Filling Density [kg/m3]": [rho],
+                        "Molar Mass [kg/mol]": [M],
+                        "Moles Unit Volume [mol/L]": [n],
+                    }, index=[fluid])
+                ])
+            df_filling["Composition [mol/mol]"] = df_filling["Moles Unit Volume [mol/L]"] / df_filling["Moles Unit Volume [mol/L]"].sum()
+            df_filling["Composition [L/L]"] = compositions.values
+            return df_filling
+
+        # Determine worst-case compositions based on the basis
+        if config['COMPOSITIONS_BASIS'] == "volume":
+            compositions_worst_case = convert_compositions_to_moles_unit_volume(
+                compositions=compositions, 
+                temperature_filling=config['FILLING_CONDITIONS']['TEMPERATURE'], 
+                pressure_filling=config['FILLING_CONDITIONS']['PRESSURE']
+            )["Composition [mol/mol]"]
+        elif config['COMPOSITIONS_BASIS'] == "mole":
+            compositions_worst_case = compositions
+        else:
+            raise Exception("Invalid 'COMPOSITIONS_BASIS'")
+
+        # Get fluid property for worst-case composition
         df_worst_case = get_fluid_property(
             doe=doe,
             hFld=";".join(compositions_worst_case.add_prefix("refprop/FLUIDS/").index),
@@ -161,13 +239,28 @@ if __name__ == "__main__":
             z=list(compositions_worst_case.values) + \
                 [0.0] * (20 - compositions_worst_case.shape[0]),
         )
+
+        # Calculate deviation
         deviation_col = f"{config['FLUID_PROPERTY']} Deviation [%]"
         df_worst_case[deviation_col] = (df_worst_case.D - df_ref.D) / df_ref.D * 100.0
+        print(df_worst_case.describe())
 
-        print(f"Impact Metrics: \n{impact_metrics_density}\n{'-' * 80}")
-        print(f"Worst-Case Compositions: \n{compositions_worst_case}\n{'-' * 80}")
-        print(f"Worst-Case Sum: {compositions_worst_case.sum()}\n{'-' * 80}")
-        print(f"Worst-Case Deviation Metrics: \n"
-              f"{df_worst_case[deviation_col].describe()}")
+        # Plot results
+        fig_im = px.imshow(
+            df_worst_case.pivot(
+                index="T", columns="P", values=deviation_col
+            ),
+            labels=dict(x="Pressure [Pa]", y="Temperature [K]", color=deviation_col),
+            title=f"{deviation_col} vs. Temperature and Pressure",
+            aspect="auto",
+        )
+        fig_im.update_xaxes(autorange=0)
+        fig_im.update_yaxes(autorange=0)
+        fig_im.show()
 
+        fig_hist = px.histogram(
+            df_worst_case, x=deviation_col,
+            title=f"{deviation_col} Histogram",
+        )
+        fig_hist.show()
     main()
