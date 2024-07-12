@@ -114,7 +114,7 @@ def normalize_impurities(
 if __name__ == "__main__":
     def main():
         # Load configuration
-        with open("config\\CO2_IMPURITIES.yaml", 'r') as config_file:
+        with open("config\\METHANE_PR25977_IMPURITIES.yaml", 'r') as config_file:
             config = yaml.safe_load(config_file)
 
         # Define constants from configuration

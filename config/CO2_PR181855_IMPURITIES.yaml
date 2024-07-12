@@ -14,7 +14,7 @@ IMPURITIES_UPPER_LIMITS:  # mol/mol
   CO: 10.0e-06
   NITROGEN: 250.0e-06
 
-FLUID_PROPERTY: D  # Density
+FLUID_PROPERTY: VIS  # Density
 
 DOE:
   n_grid_temperature: 10

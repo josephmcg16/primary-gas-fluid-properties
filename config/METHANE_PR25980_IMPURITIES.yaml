@@ -1,0 +1,24 @@
+COMPOSITIONS_BASIS: volume
+
+FILLING_CONDITIONS:
+  TEMPERATURE: 288.15  # K
+  PRESSURE: 20101325  # Pa
+
+BASE_COMPOSITIONS_LOWER_LIMITS:  # COMPOSITIONS_BASIS
+  METHANE: 0.9995
+
+IMPURITIES_UPPER_LIMITS:  # COMPOSITIONS_BASIS
+  WATER: 20.0e-06 
+  OXYGEN: 20.0e-06
+  CO2: 50.0e-06
+  NITROGEN: 100.0e-06
+  ETHYLENE: 10.0e-06
+  ETHANE: 320.0e-06  # assuming other hydrocarbons are ethane
+
+FLUID_PROPERTY: D  # Density
+
+DOE:
+  n_grid_temperature: 10
+  n_grid_pressure: 10
+  temperature_range: [310.15, 323.15]  # K
+  pressure_range: [51325, 2101325]  # Pa
